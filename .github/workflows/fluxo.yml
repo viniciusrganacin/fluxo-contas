@@ -1,7 +1,8 @@
 # Uma rodada do Fluxo Contas: conecta no WhatsApp, trata as mensagens do grupo que chegaram desde a última rodada,
 # manda os avisos do horário (segunda 8h e dia 1 às 8h) e desliga.
-# Quem dispara é o cron-job.org a cada 5 min (POST em .../actions/workflows/fluxo.yml/dispatches);
-# o agendamento do próprio GitHub abaixo é só reserva (ele atrasa e para sozinho após 60 dias sem commit).
+# Quem dispara é o agendador do próprio GitHub a cada 5 min (costuma atrasar alguns minutos; decisão de 04/11/2026,
+# o token do cron-job.org não deu certo). Também dá para rodar na mão: Actions → Fluxo Contas → Run workflow.
+# O GitHub desliga o agendador após 60 dias sem commit: o passo "Sinal de vida" faz um commit vazio a cada 30 dias.
 # O estado (conexão do WhatsApp + o que já foi tratado) passa de uma rodada para a outra pelo cache do GitHub,
 # sempre criptografado com CHAVE_ESTADO. Na 1ª vez sai de estado-inicial.enc.
 # O log é público: o robô só escreve o tipo do evento, nunca valores, categorias ou nomes.
@@ -9,10 +10,10 @@ name: Fluxo Contas
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
 
 permissions:
-  contents: read
+  contents: write   # só para o commit vazio do "Sinal de vida"
 
 concurrency:
   group: fluxo
@@ -75,3 +76,14 @@ jobs:
         with:
           path: estado.enc
           key: estado-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Sinal de vida (a cada 30 dias)
+        if: always()
+        run: |
+          ultimo=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - ultimo )) -gt $((30 * 86400)) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Sinal de vida (mantém o agendamento ligado)"
+            git push
+          fi

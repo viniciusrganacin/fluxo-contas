@@ -1,7 +1,7 @@
 # Fluxo Contas
 
 Robô do grupo **FLUXO CONTAS** no WhatsApp que lança gastos e receitas no app de finanças (Firebase).
-Roda no GitHub Actions a cada 5 minutos (disparado pelo cron-job.org): conecta, trata as mensagens novas do grupo,
+Roda no GitHub Actions a cada 5 minutos (agendador do próprio GitHub, costuma atrasar alguns minutos): conecta, trata as mensagens novas do grupo,
 responde, manda os avisos do horário e desliga.
 
 ## O que dá pra mandar no grupo
