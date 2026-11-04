@@ -1,7 +1,7 @@
 # Uma rodada do Fluxo Contas: conecta no WhatsApp, trata as mensagens do grupo que chegaram desde a última rodada,
 # manda os avisos do horário (segunda 8h e dia 1 às 8h) e desliga.
-# Quem dispara é o agendador do próprio GitHub a cada 5 min (costuma atrasar alguns minutos; decisão de 04/11/2026,
-# o token do cron-job.org não deu certo). Também dá para rodar na mão: Actions → Fluxo Contas → Run workflow.
+# Quem dispara é o cron-job.org a cada 5 min (POST em ./actions/workflows/fluxo.yml/dispatches); o agendador do
+# próprio GitHub (a cada 30 min) é só reserva. Também dá para rodar na mão: Actions → Fluxo Contas → Run workflow.
 # O GitHub desliga o agendador após 60 dias sem commit: o passo "Sinal de vida" faz um commit vazio a cada 30 dias.
 # O estado (conexão do WhatsApp + o que já foi tratado) passa de uma rodada para a outra pelo cache do GitHub,
 # sempre criptografado com CHAVE_ESTADO. Na 1ª vez sai de estado-inicial.enc.
@@ -10,7 +10,7 @@ name: Fluxo Contas
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
 
 permissions:
   contents: write   # só para o commit vazio do "Sinal de vida"
