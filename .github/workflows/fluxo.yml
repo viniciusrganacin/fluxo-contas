@@ -1,0 +1,77 @@
+# Uma rodada do Fluxo Contas: conecta no WhatsApp, trata as mensagens do grupo que chegaram desde a última rodada,
+# manda os avisos do horário (segunda 8h e dia 1 às 8h) e desliga.
+# Quem dispara é o cron-job.org a cada 5 min (POST em .../actions/workflows/fluxo.yml/dispatches);
+# o agendamento do próprio GitHub abaixo é só reserva (ele atrasa e para sozinho após 60 dias sem commit).
+# O estado (conexão do WhatsApp + o que já foi tratado) passa de uma rodada para a outra pelo cache do GitHub,
+# sempre criptografado com CHAVE_ESTADO. Na 1ª vez sai de estado-inicial.enc.
+# O log é público: o robô só escreve o tipo do evento, nunca valores, categorias ou nomes.
+name: Fluxo Contas
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fluxo
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      TZ: America/Sao_Paulo
+      CHAVE_ESTADO: ${{ secrets.CHAVE_ESTADO }}
+      FLUXO_GRUPO: ${{ secrets.FLUXO_GRUPO }}
+      FLUXO_LAR: ${{ secrets.FLUXO_LAR }}
+      ESTADO: /tmp/estado
+      FLUXO_SESSAO: /tmp/estado/sessao
+      FLUXO_ESTADO: /tmp/estado/estado.json
+      FLUXO_CHAVE: /tmp/cred/firebase.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar
+        run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: Buscar o estado da última rodada
+        uses: actions/cache/restore@v4
+        with:
+          path: estado.enc
+          key: estado-${{ github.run_id }}
+          restore-keys: estado-
+
+      - name: Abrir estado e credenciais
+        id: abrir
+        env:
+          FIREBASE_KEY: ${{ secrets.FIREBASE_KEY }}
+        run: |
+          if [ -f estado.enc ]; then echo "estado: última rodada"; else cp estado-inicial.enc estado.enc; echo "estado: inicial"; fi
+          node ferramentas/cripto.cjs decifrar CHAVE_ESTADO estado.enc /tmp/estado.tgz
+          mkdir -p "$ESTADO" /tmp/cred
+          tar xzf /tmp/estado.tgz -C "$ESTADO"
+          printf '%s' "$FIREBASE_KEY" > "$FLUXO_CHAVE"
+
+      - name: Rodar
+        run: node bot.mjs ciclo
+
+      - name: Guardar o estado (criptografado)
+        if: always() && steps.abrir.outcome == 'success'
+        run: |
+          rm -rf /tmp/cred
+          tar czf /tmp/estado.tgz -C "$ESTADO" .
+          node ferramentas/cripto.cjs cifrar CHAVE_ESTADO /tmp/estado.tgz estado.enc
+
+      - uses: actions/cache/save@v4
+        if: always() && steps.abrir.outcome == 'success'
+        with:
+          path: estado.enc
+          key: estado-${{ github.run_id }}-${{ github.run_attempt }}

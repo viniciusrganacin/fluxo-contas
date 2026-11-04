@@ -1,0 +1,12 @@
+{
+  "name": "fluxo-contas",
+  "private": true,
+  "type": "module",
+  "description": "Robô do grupo FLUXO CONTAS (WhatsApp) que lança no app de finanças (Firebase)",
+  "dependencies": {
+    "baileys": "7.0.0-rc14",
+    "firebase-admin": "13.10.0",
+    "pino": "10.4.0",
+    "qrcode": "1.5.4"
+  }
+}

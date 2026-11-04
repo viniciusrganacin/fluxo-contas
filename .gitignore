@@ -1,0 +1,7 @@
+node_modules/
+sessao/
+config.json
+estado.json
+qr.png
+logs/
+*.tgz
