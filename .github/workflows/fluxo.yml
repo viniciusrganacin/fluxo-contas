@@ -1,3 +1,4 @@
+# Fluxo Contas (GitHub Actions)
 # Uma rodada do Fluxo Contas: conecta no WhatsApp, trata as mensagens do grupo que chegaram desde a última rodada,
 # manda os avisos do horário (segunda 8h e dia 1 às 8h) e desliga.
 # Quem dispara é o cron-job.org a cada 5 min (POST em .../actions/workflows/fluxo.yml/dispatches);
